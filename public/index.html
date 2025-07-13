@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User CRUD with Popup Edit</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 40px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #007BFF;
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 5px;
+    }
+    input {
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .user {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f0f8ff;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 6px;
+      position: relative;
+    }
+    .actions button {
+      margin-left: 5px;
+      padding: 5px 10px;
+      font-size: 0.9rem;
+      border-radius: 4px;
+    }
+    .edit-btn {
+      background-color: #ffc107;
+      color: black;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+    .popup {
+      position: absolute;
+      top: 100%;
+      right: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 10px;
+      z-index: 100;
+      width: 200px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      border-radius: 6px;
+    }
+    .popup input {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+    .popup button {
+      width: 100%;
+      background-color: #28a745;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Manager</h1>
+
+    <input type="text" id="nameInput" placeholder="Enter user name">
+    <button onclick="addUser()">Add User</button>
+
+    <div id="userList"></div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:5000/users';
+    let users = [];
+
+    async function fetchUsers() {
+      const res = await fetch(API);
+      users = await res.json();
+      renderUsers();
+    }
+
+    function renderUsers() {
+      const list = document.getElementById('userList');
+      list.innerHTML = '';
+
+      users.forEach((user, index) => {
+        const div = document.createElement('div');
+        div.className = 'user';
+        div.innerHTML = `
+          <span>${index + 1}. ${user.name}</span>
+          <div class="actions">
+            <button class="edit-btn" onclick="showEditPopup(${user.id}, '${user.name}', this)">Edit</button>
+            <button class="delete-btn" onclick="deleteUser(${user.id})">Delete</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    async function addUser() {
+      const name = document.getElementById('nameInput').value.trim();
+      if (!name) return alert('Enter name!');
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      document.getElementById('nameInput').value = '';
+      fetchUsers();
+    }
+
+    async function deleteUser(id) {
+      await fetch(`${API}/${id}`, { method: 'DELETE' });
+      fetchUsers();
+    }
+
+    function showEditPopup(id, name, btn) {
+      // Remove existing popups
+      const existing = document.querySelector('.popup');
+      if (existing) existing.remove();
+
+      // Create popup
+      const popup = document.createElement('div');
+      popup.className = 'popup';
+      popup.innerHTML = `
+        <input type="text" id="popupName" value="${name}" />
+        <button onclick="updateUser(${id})">Update</button>
+      `;
+
+      // Insert popup near button
+      btn.parentElement.parentElement.appendChild(popup);
+    }
+
+    async function updateUser(id) {
+      const newName = document.getElementById('popupName').value.trim();
+      if (!newName) return alert('Enter new name');
+      await fetch(`${API}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+      document.querySelector('.popup')?.remove();
+      fetchUsers();
+    }
+
+    fetchUsers();
+  </script>
+</body>
+</html>
